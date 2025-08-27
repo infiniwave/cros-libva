@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-use std::rc::Rc;
+use std::sync::Arc;
 
 use crate::bindings;
 use crate::va_check;
@@ -17,7 +17,7 @@ use crate::VaError;
 /// client memory to a surface.
 pub struct Image<'a> {
     /// The display from which the image was created, so we can unmap it upon destruction.
-    display: Rc<Display>,
+    display: Arc<Display>,
     /// The `VAImage` returned by libva.
     image: bindings::VAImage,
     /// The mapped surface data.
@@ -68,7 +68,7 @@ impl<'a> Image<'a> {
                 let data =
                     unsafe { std::slice::from_raw_parts_mut(addr as _, image.data_size as usize) };
                 Ok(Image {
-                    display: Rc::clone(surface.display()),
+                    display: Arc::clone(surface.display()),
                     image,
                     data,
                     derived,
@@ -122,7 +122,7 @@ impl<'a> Image<'a> {
         mut format: bindings::VAImageFormat,
         coded_resolution: (u32, u32),
         visible_rect: (u32, u32),
-    ) -> Result<Image, VaError> {
+    ) -> Result<Image<'a>, VaError> {
         // An all-zero byte-pattern is a valid initial value for `VAImage`.
         let mut image: bindings::VAImage = Default::default();
         let dpy = surface.display().handle();

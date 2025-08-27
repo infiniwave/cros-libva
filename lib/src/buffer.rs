@@ -4,6 +4,7 @@
 
 //! Wrappers and helpers around `VABuffer`s.
 
+#[cfg(libva_1_14_or_higher)]
 mod av1;
 mod enc_jpeg;
 mod enc_misc;
@@ -15,6 +16,7 @@ mod proc_pipeline;
 mod vp8;
 mod vp9;
 
+#[cfg(libva_1_14_or_higher)]
 pub use av1::*;
 pub use enc_jpeg::*;
 pub use enc_misc::*;
@@ -52,6 +54,7 @@ impl Buffer {
             BufferType::SliceParameter(SliceParameter::H264(ref mut params)) => {
                 params.inner_mut().len()
             }
+            #[cfg(libva_1_14_or_higher)]
             BufferType::SliceParameter(SliceParameter::AV1(ref mut params)) => {
                 params.inner_mut().len()
             }
@@ -88,6 +91,7 @@ impl Buffer {
                     wrapper.inner_mut() as *mut _ as *mut std::ffi::c_void,
                     std::mem::size_of_val(wrapper.inner_mut()),
                 ),
+                #[cfg(libva_1_14_or_higher)]
                 PictureParameter::AV1(ref mut wrapper) => (
                     wrapper.inner_mut() as *mut _ as *mut std::ffi::c_void,
                     std::mem::size_of_val(wrapper.inner_mut()),
@@ -127,6 +131,7 @@ impl Buffer {
                     wrapper.inner_mut() as *mut _ as *mut std::ffi::c_void,
                     std::mem::size_of_val(wrapper.inner_mut()),
                 ),
+                #[cfg(libva_1_14_or_higher)]
                 SliceParameter::AV1(ref mut wrapper) => (
                     wrapper.inner_mut().as_mut_ptr() as *mut std::ffi::c_void,
                     std::mem::size_of::<bindings::VASliceParameterBufferAV1>(),
@@ -197,6 +202,7 @@ impl Buffer {
                     wrapper.inner_mut() as *mut _ as *mut std::ffi::c_void,
                     std::mem::size_of_val(wrapper.inner_mut()),
                 ),
+                #[cfg(libva_1_14_or_higher)]
                 EncSequenceParameter::AV1(ref mut wrapper) => (
                     wrapper.inner_mut() as *mut _ as *mut std::ffi::c_void,
                     std::mem::size_of_val(wrapper.inner_mut()),
@@ -220,6 +226,7 @@ impl Buffer {
                     wrapper.inner_mut() as *mut _ as *mut std::ffi::c_void,
                     std::mem::size_of_val(wrapper.inner_mut()),
                 ),
+                #[cfg(libva_1_14_or_higher)]
                 EncPictureParameter::AV1(ref mut wrapper) => (
                     wrapper.inner_mut() as *mut _ as *mut std::ffi::c_void,
                     std::mem::size_of_val(wrapper.inner_mut()),
@@ -235,6 +242,7 @@ impl Buffer {
                     wrapper.inner_mut() as *mut _ as *mut std::ffi::c_void,
                     std::mem::size_of_val(wrapper.inner_mut()),
                 ),
+                #[cfg(libva_1_14_or_higher)]
                 EncSliceParameter::AV1(ref mut wrapper) => (
                     wrapper.inner_mut() as *mut _ as *mut std::ffi::c_void,
                     std::mem::size_of_val(wrapper.inner_mut()),
@@ -294,6 +302,14 @@ impl Buffer {
                     std::mem::size_of_val(wrapper.inner_mut()),
                 ),
             },
+            BufferType::EncPackedHeaderParameter(ref mut wrapper) => (
+                wrapper.inner_mut() as *mut _ as *mut std::ffi::c_void,
+                std::mem::size_of_val(wrapper.inner_mut()),
+            ),
+
+            BufferType::EncPackedHeaderData(ref data) => {
+                (data.as_ptr() as *mut std::ffi::c_void, data.len())
+            }
         };
 
         // Safe because `self` represents a valid `VAContext`. `ptr` and `size` are also ensured to
@@ -368,6 +384,10 @@ pub enum BufferType {
     ProcPipelineParameter(proc_pipeline::ProcPipelineParameterBuffer),
     /// Abstraction over `VAQMatrixBufferType`.
     QMatrix(QMatrix),
+    /// Abstraction over `VAEncPackedHeaderParameterBufferType`.
+    EncPackedHeaderParameter(EncPackedHeaderParameter),
+    /// Abstraction over `VAEncPackedHeaderDataBufferType`.
+    EncPackedHeaderData(Vec<u8>),
 }
 
 impl BufferType {
@@ -404,7 +424,16 @@ impl BufferType {
             BufferType::ProcPipelineParameter(_) => {
                 bindings::VABufferType::VAProcPipelineParameterBufferType
             }
+
             BufferType::QMatrix(_) => bindings::VABufferType::VAQMatrixBufferType,
+
+            BufferType::EncPackedHeaderParameter(_) => {
+                bindings::VABufferType::VAEncPackedHeaderParameterBufferType
+            }
+
+            BufferType::EncPackedHeaderData(_) => {
+                bindings::VABufferType::VAEncPackedHeaderDataBufferType
+            }
         }
     }
 }
@@ -425,6 +454,7 @@ pub enum PictureParameter {
     HEVCRext(hevc::PictureParameterBufferHEVCRext),
     /// Wrapper over VAPictureParameterBufferHEVCScc
     HEVCScc(hevc::PictureParameterBufferHEVCScc),
+    #[cfg(libva_1_14_or_higher)]
     /// Wrapper over VADecPictureParameterBufferAV1
     AV1(av1::PictureParameterBufferAV1),
     /// Wrapper over VAPictureParameterBufferJPEGBaseline
@@ -447,6 +477,7 @@ pub enum SliceParameter {
     HEVC(hevc::SliceParameterBufferHEVC),
     /// Wrapper over VASliceParameterBufferHEVCRext
     HEVCRext(hevc::SliceParameterBufferHEVCRext),
+    #[cfg(libva_1_14_or_higher)]
     /// Wrapper over VASliceParameterBufferAV1
     AV1(av1::SliceParameterBufferAV1),
     /// Wrapper over VASliceParameterBufferJPEGBaseline
@@ -491,6 +522,7 @@ pub enum EncSequenceParameter {
     VP8(vp8::EncSequenceParameterBufferVP8),
     /// Abstraction over `VAEncSequenceParameterBufferVP9`
     VP9(vp9::EncSequenceParameterBufferVP9),
+    #[cfg(libva_1_14_or_higher)]
     /// Abstraction over `VAEncSequenceParameterBufferAV1`
     AV1(av1::EncSequenceParameterBufferAV1),
 }
@@ -505,6 +537,7 @@ pub enum EncPictureParameter {
     VP8(vp8::EncPictureParameterBufferVP8),
     /// Abstraction over `VAEncPictureParameterBufferVP9`
     VP9(vp9::EncPictureParameterBufferVP9),
+    #[cfg(libva_1_14_or_higher)]
     /// Abstraction over `VAEncPictureParameterBufferAV1`
     AV1(av1::EncPictureParameterBufferAV1),
 }
@@ -515,6 +548,7 @@ pub enum EncSliceParameter {
     H264(h264::EncSliceParameterBufferH264),
     /// Abstraction over `VAEncSliceParameterBufferHEVC`
     HEVC(hevc::EncSliceParameterBufferHEVC),
+    #[cfg(libva_1_14_or_higher)]
     /// Abstraction over `VAEncTileGroupBufferAV1`
     AV1(av1::EncTileGroupBufferAV1),
 }
@@ -627,4 +661,37 @@ pub enum EncMiscParameter {
     QualityLevel(EncMiscParameterBufferQualityLevel),
     /// Wrapper over `VAEncMiscParameterBuffer` with `VAEncMiscParameterQuantization`.
     Quantization(EncMiscParameterQuantization),
+}
+
+/// Abstraction over the `VAEncPackedHeaderType` enum values we support.
+#[repr(u32)]
+pub enum EncPackedHeaderType {
+    /// Sequence header
+    Sequence = bindings::VAEncPackedHeaderType::VAEncPackedHeaderSequence,
+    /// Picture header
+    Picture = bindings::VAEncPackedHeaderType::VAEncPackedHeaderPicture,
+    /// Slice header
+    Slice = bindings::VAEncPackedHeaderType::VAEncPackedHeaderSlice,
+    /// Raw data
+    RawData = bindings::VAEncPackedHeaderType::VAEncPackedHeaderRawData,
+}
+
+/// Abstraction over `EncPackedHeaderParameterBuffer` types we support
+pub struct EncPackedHeaderParameter(Box<bindings::VAEncPackedHeaderParameterBuffer>);
+
+impl EncPackedHeaderParameter {
+    /// Creates a new `EncPackedHeaderParameter` from the given `VAEncPackedHeaderParameterBuffer`.
+    pub fn new(type_: EncPackedHeaderType, length_in_bits: u32, has_emulation: bool) -> Self {
+        Self(Box::new(bindings::VAEncPackedHeaderParameterBuffer {
+            type_: type_ as _,
+            bit_length: length_in_bits,
+            has_emulation_bytes: has_emulation as u8,
+            ..Default::default()
+        }))
+    }
+
+    /// Returns a mutable reference to the inner `VAEncPackedHeaderParameterBuffer`.
+    pub fn inner_mut(&mut self) -> &mut bindings::VAEncPackedHeaderParameterBuffer {
+        &mut self.0
+    }
 }
